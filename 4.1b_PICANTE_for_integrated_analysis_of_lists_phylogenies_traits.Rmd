@@ -16,7 +16,7 @@ While today's fourth lab has focused quite a bit on working with databases and m
 Picante should come loaded with base R, but if it doesn't it can be installed routinely (from CRAN repository).
 
 ```{r}
-#install.packages("picante")
+install.packages("picante")
 library(picante)
 ```
 
@@ -24,9 +24,11 @@ library(picante)
 There is a useful sample data set in the package called phylocom that we should explore:
 
 ```{r}
+# phylocom is a demonstration dataset 
+
 data(phylocom)
 names(phylocom)
-head(phylocom)
+head(phylocom) # genertes information output in the console 
 ```
 Let's look at how many taxa are in the tree and in the trait data, and compare that with the number of taxa in the abundance matrix ("comm").
 
@@ -36,21 +38,29 @@ Since there are more taxa in the phylogeny than in the community, we can actuall
 #First, let's rename the phylogeny part of our sample data
 #And also rename the community abundance matrix part of our sample data
 phy <- phylocom$phylo
-comm <- phylocom$sample
+comm <- phylocom$sample # abundance matrix
 traits <- phylocom$traits
+
+phy
+
 #Now let's prune phy so that its taxa exactly match the taxa in comm
-prunedphy <- prune.sample(comm, phy)
+prunedphy <- prune.sample(comm, phy) # cutting so community data matches our list (phy)
 prunedphy
-plot(prunedphy)
+plot(prunedphy) #plotting the cleaned data
+
+# branch lengths all the same length in the output 
 ```
 
 Once that's done, we can do something right away to make a point about what we're doing. 
 
 ```{r}
+# going to plot our data 6 times - each time with clumps (from above) plotted into our data 
+
 #This first line sets up a grid for mapping multiple phylogenies on one panel
 #This is a general command that could be used almost anywhere
 #We'll use it below to set up a 2,2 grid instead of the 2,3 grid used here
-par(mfrow = c(2, 3))
+par(mfrow = c(2, 3)) 
+
 #Now we are going to start a loop. 
 #Here, i= 6 because there are six samples in six rows of the community matrix.
 #The loop does the same thing i times, meaning 6 times 
@@ -59,12 +69,17 @@ par(mfrow = c(2, 3))
 for (i in row.names(comm)) {
 plot(prunedphy, show.tip.label = FALSE, main = i)
 tiplabels(tip = which(prunedphy$tip.label %in% names(which(comm [i, ] > 0))), pch=22, cex=2)
+
 }
+
+# trees with yellow markers/labels on tips - marking the clumps defined above 
+# in the loop: if present in cluster, plot a dot (labled)
+# in these graphs we can see how speices (from our communities) fit into clades
 ```
 
 
 ```{r}
-pd.result <- pd(comm, phy, include.root=TRUE)
+pd.result <- pd(comm, phy, include.root=TRUE) # pd as phylogenetic diversity/distance
 pd.result
 ```
 
@@ -81,6 +96,10 @@ Any lists of plant taxa, compiled can serve as a starting point. Individual list
 
 With plant community data, there is sometimes also an interest in what traits might be uniform or different among the taxa in the community, whether because of convergence/plasticity or because of shared ancestry. For this reason, PICANTE has some trait capabilities. 
 
+# here we plot traits instead of presence of a species (in a community)
+# so colored tips show traits (to help compare how traits do/dont evolve in endspeices)
+
+
 ```{r}
 par(mfrow = c(2, 2))
 for (i in names(traits)) {
@@ -91,7 +110,7 @@ tiplabels(pch = 22, col = traits[, i] + 1, bg = traits[, i] + 1, cex = 1.5)
 
 
 
-## Going through concepts in Picante a second time
+## Going through concepts in Picante a second time 
 
 So, we were working with just a sample data set, but before we charge off and try to assemble our own data set, let's think through another sample data set that we'll create ourselves. 
 
@@ -110,12 +129,14 @@ plot(tr_lectureFULL, type="cladogram", direction=c("upwards"))
 ```
 
 
-Although the "read.tree" command in APE can create a phylo object without tree lengths,  such a tree will not work with PICANTE. Lengths need to be part of the phylogeny (and the R phylogeny object that is created using the "read.tree" command). If lengths are unavailable, they can all be entered as 1.
+Although the "read.tree" command in APE can create a phylo object without tree lengths,  such a tree will NOT work with PICANTE. Lengths need to be part of the phylogeny (and the R phylogeny object that is created using the "read.tree" command). If lengths are unavailable, they can all be entered as 1.
 
 ```{r}
 newick_one_lengths = "((((((((A:1,B:1):1,((C:1,D:1):1):1):1):1,(((E:1,F:1):1,G:1):1):1):1):1,H:1):1,((((I:1,J:1):1,K:1):1,(L:1,M:1):1):1,((N:1,O:1):1,(P:1,Q:1):1):1):1):1);"
 tr_one_lengths=read.tree(text=newick_one_lengths)
 plot(tr_one_lengths, type="fan", direction="upwards")
+
+plot(tr_one_lengths, type="cladogram", direction="upwards")
 ```
 
 In addition to looking at how lengths work in Newick and on a plot, also look at the sub-clade relationships within this phylogeny. There is the sub-clade ABCDEFG with a sister taxon H. Then there is another sub-clade IJKLMNOPQ
@@ -173,6 +194,9 @@ for (i in row.names(abundance)) {
 plot(prunedAB, show.tip.label = FALSE, main = i)
   tiplabels(tip = which(prunedAB$tip.label %in% names(which(abundance [i, ] > 0))), pch=19, cex=1)
 }
+
+# prunedAB as the info for the tree // abuncance as the matrix
+
 ```
 
 
@@ -202,6 +226,7 @@ phydist <- cophenetic(tr_full_lengths)
 ses.mntd.result <- ses.mntd(abundance, phydist, null.model = "taxa.labels",
 abundance.weighted = FALSE, runs = 99)
 ses.mntd.result
+
 ```
 
 
@@ -235,13 +260,16 @@ for (i in names(traitsEX)) {
 plot(prunedAB, show.tip.label = FALSE, main = i)
 tiplabels(pch = 22, col = traitsEX[, i] + 1, bg = traitsEX[, i] + 1, cex = 1.5)
 }
+
+# recomputes all things but looks at them nonindependently (to avoid bias)
+
 ```
 
 The trait labeled as "traitINERTIA" seems to correspond to two major clades (with infrequent exceptions) compared to "traitINNO" which doesn't. For the size traits, this simple technique is a little harder to discern, but we could imagine spending a lot more time to refine our color coding, but bear in mind that size traits in plants can have a lot of environmental plasticity, which also makes it hard to analyze them for phylogenetic signal. 
 
 There's already too much in this course and in these digital labs, so I'm not going to go into further depth about using Picante for phylogenetic trait analysis, but it's a cool idea, right? These days, people doing trait analysis no longer use Picante, opting instead to work with  another package called "phytools".
 
-## Mini-exercise 3
+## Mini-exercise 3 
 
 After using all the code above and perusing results, review what you've done with the PICANTE package by going back and making comparisons with the VEGAN package, which doesn't ever consider phylogeny. Simply work with the fake communities created: one, three, two and five.
 
@@ -259,6 +287,180 @@ Phylogenize (revisiting skills from Digital Lab 3). Again, it's a good idea to w
 
 Create six different annotations of the phylogeny, differing by showing the list-specific taxa. 
 Figure out both Shannon or Simpson diversity indices, and PD (Phylogenetic Diversity). Comment on how they compare. Figure out one additional analysis from today's lab, your choice. 
+
+```{r} 
+# import/select packages
+library(picante)
+library(vegan)
+library(plyr)
+library(labdsv)
+
+library(rgbif) # part of r open science suite; species occurence data
+library(spocc)
+library(taxize)
+
+library(ape)
+library(brranching)
+
+# import data
+IndIngredientsFile = read.csv("CandyListS.csv") 
+
+# make species lists/occurance data 
+snickers.occ = unique((IndIngredientsFile$Snickers))
+reeses.occ = unique((IndIngredientsFile$Reeses))
+hershey.occ = unique((IndIngredientsFile$Hershey))
+gummmyBear.occ = unique((IndIngredientsFile$GummyBear))
+jollyRancher.occ = unique((IndIngredientsFile$JollyRancher))
+kitKat.occ = unique((IndIngredientsFile$KitKat))
+
+# convert to abundance matrix 
+snickers.ab = count(snickers.occ)
+reeses.ab = count(reeses.occ)
+hershey.ab = count(hershey.occ)
+gummyBear.ab = count(gummmyBear.occ)
+jollyRancher.ab = count(jollyRancher.occ)
+kitKat.ab = count(kitKat.occ)
+
+# format into a table 
+snickers.ab = data.frame("SNICKERS", snickers.ab) # adding an identifier
+names(snickers.ab)<-c("Candy", "SpeciesID", "Freq")
+
+reeses.ab = data.frame("REESES", reeses.ab)
+names(reeses.ab)<-c("Candy", "SpeciesID", "Freq")
+
+hershey.ab = data.frame("HERSHEY", hershey.ab)
+names(hershey.ab)<-c("Candy", "SpeciesID", "Freq")
+
+gummyBear.ab = data.frame("GUMMMY", gummyBear.ab)
+names(gummyBear.ab)<-c("Candy", "SpeciesID", "Freq")
+
+jollyRancher.ab = data.frame("JOLLY", jollyRancher.ab)
+names(jollyRancher.ab)<-c("Candy", "SpeciesID", "Freq")
+
+kitKat.ab = data.frame("KITKAT", kitKat.ab)
+names(kitKat.ab)<-c("Candy", "SpeciesID", "Freq")
+
+# combine 6 lists
+allIngredients=rbind(snickers.ab, reeses.ab, hershey.ab, gummyBear.ab, jollyRancher.ab, kitKat.ab)
+dim(allIngredients)
+
+# matrify
+Ingredients <- matrify(allIngredients)
+Ingredients
+
+# use taxize to resolve the master list for "proper taxonomy" [code dosent work]
+for (i in colnames(Ingredients))
+{
+  #print(i) # print check on for loop object
+  tsn=get_tsn(i, accepted=FALSE) # find tsn
+  #tsn
+  
+  lapply(tsn, itis_acceptname) # apply accepted name (incase not the same)
+  #print(itis_acceptname)
+}
+
+
+# phylogenize
+SpeciesList = colnames(Ingredients) 
+SpeciesList
+taxa <-c(SpeciesList)
+taxa
+
+  # using stored tree zanne2014 (includes branch length)
+tree_phylomatic <- phylomatic(taxa = SpeciesList, storedtree ="zanne2014", get = 'POST') 
+plot(tree_phylomatic, no.margin = TRUE) 
+
+  # save phylogenty as a file 
+fileNamer = "PlainPhylo"
+write.tree(tree_phylomatic, file=fileNamer)
+
+# save image as a file (PDF)
+pdf_fn = "PlainPhylo.pdf"
+pdf(file=pdf_fn)
+plot(tree_phylomatic, no.margin = TRUE) 
+dev.off()
+
+  # open on computer
+cmdstr = paste("open ", pdf_fn, sep="")
+system(cmdstr)
+
+# create PDF of 6 trees 
+pdf_fn_t = "TaggedPhylo.pdf"
+pdf(file=pdf_fn_t)
+plot(tree_phylomatic, no.margin = TRUE) 
+
+# 6 annotations of the list 
+  # create matrix (6 spots)
+par(mfrow = c(3, 2))
+
+  # create [creates the 6 trees, but they remain unlabled (see notes in for loop)]
+for (i in rownames(Ingredients)) # "for each of the species a row in the matrix"
+{
+  plot(tree_phylomatic, show.tip.label = FALSE, main = i) # doesnt show species names
+  
+  # should: label the tips (ingredients) that are assoicated with one type of candy
+  # should scann through all tips: tree_phylomatic$tip.label
+  # and compare to all species that are listed under a single candy: names()
+  
+  # I've tried a variety of apporahes to solving this, but so far had no success:
+  # modifying the "which" and "names command"; formatting/altering Ingredients so that its only a list of strings; 
+  # I see that the first portion of the argumetn following the "=" should reference the tree (here its "tree_phylomatic") and then compare it to/find matches with ("%in%"") the list of species that are within a certain candy/row in the matrix ("names(which(Ingredients [i, ] > 0))")
+  # for some reason this isnt happening though - I predict that the problem is in the second half of this, and I am not propperly referencing the list of species that belongs to a type of candy
+  tiplabels(tip = which(tree_phylomatic$tip.label %in% names(which(Ingredients [i, ] > 0))), pch=19, cex=1) # adds labels [doesnt work, but no errors - just no labels]
+
+  # tree_phylomatic as the info for the tree // Ingredients as the matrix
+}
+
+dev.off() # closes PDF file ? so that 6 induvidual trees are saved
+
+# open up PDF [shows that the headders/titles get cut off in the created PDF - not sure how to fix that/format // however the output that shows up below looks uncrowded]
+cmdstr = paste("open ", pdf_fn_t, sep="")
+system(cmdstr)
+
+# shannon, simpson, and PD
+  # compare diversities between candies (ie. they're run for each type)
+shannon<-diversity(Ingredients, index = "shannon") 
+simpson<-diversity(Ingredients, index = "simpson") 
+
+pd.result <- pd(Ingredients, tree_phylomatic, include.root=TRUE) # [error here: invalid 'times' argument] - not sure how to fix
+  # I put in "Ingredients" as my abuncance matrix adn "tree_phylomatic" as the data for my tree, which reflects the structure for the "pd" command that is in the sample code (as I could interpret it)
+
+# view results
+shannon
+simpson
+pd.result # [doesnt have a value because of the error in creating it]
+
+# compare diversity indicies 
+# the simpson and shannon indicies together indicate that between candy types, the greatest diversity is observed in the list of gummy bear ingredients. However, the biodiveristy in all is very similar, with values that are very close in size. This may be due to the fact taht 1) the lists are not all long, and 2) the ingredientes were very similar
+# when doing this analysis, I was shocked to find the similarities in lists of ingreidents - it was as if all candies (espeicaly ones that include chocolate) are all just different versions of the same 5-10 ingredients: sugar, chocolate, dairy, palm oil, some emulsifier (ususally soy), and sometimes peanuts
+# I was unable to get the pd index to run (couldnt figure out how to format my abuncance matrix such that I could put it into the pd function with my phylogeny). However, as a result of the very similar lists of ingredients, and thus a shorter list of indivudial plant species, I recognize that my tree has relatively few branches (as compared to one compiled from 6 recipies/products with very different ingredients). In these 6 products, there are only 13 unique ingredients (thats crazy!)
+
+# additional analysis from today's lab: tag tips of a specific classification 
+taggedList = ("Arachis hypogaea")
+
+for (i in colnames(Ingredients))
+{
+  name = i
+  tsn=get_tsn(i, accepted=FALSE) # obtain tsn 
+
+  # here I would add the name of the present species to "taggedList" if it met the chriteria that I was looking for
+  
+  # then when (out of the for loop) I plotted the tree with the labeled tips, the ones with the chriteria would be labeled
+  
+  # ran out of time to do (also was having trouble with getting labels to show up in the first place )
+  
+}
+ 
+# plot tree with specified tips lableled (and fun labels)
+plot(tree_phylomatic, show.tip.label = FALSE, main = i) # doesnt show species names
+tiplabels(tip = which(tree_phylomatic$tip.label %in% taggedList))
+tiplabels(pch = 12, col = "blue", cex = 2) # labels all of them 
+
+# NOTE: 
+# unfortunately, I wasn't able to successfully finsih all the parts of this mini-excersise. I'm hoping to go into office hours to resolve the issues I was having, but too left notes about what I was seeing versus what I was wishing to see in the hopes that I could get some feedback on what may be the problem. 
+
+
+```
 
 
 Resources for the tree project:

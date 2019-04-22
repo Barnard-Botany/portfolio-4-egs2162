@@ -612,3 +612,197 @@ points(cbind(CaryaGlabraUnique$decimalLongitude, CaryaGlabraUnique$decimalLatitu
 
 
 ``` 
+
+# MASTERY ASSIGNMENT   
+```{r}
+
+# in this .Rmd we:
+# - collecect central park (area) data
+# - clean occurance lists for [GBIF, Atha, Street Census]
+# - create abundance matrix comparing central park data (GBIF, Atha)
+# - create abundance matrix comparing area and perimiter data (central park, street trees)
+# - run the learned biodiversity statistics: between Atha/GBIF; between CP/Street
+
+# Questions/TO DO
+# - should I separate parts of code into seperate code chunks - using ``` {r} ?
+# - could: create file of biodiveristy stats to print out (or could just copy and paste)
+
+
+# import/select packages
+library(picante)
+library(vegan)
+library(plyr)
+library(labdsv)
+
+library(rgbif) # part of r open science suite; species occurence data
+library(spocc)
+library(taxize)
+
+library(ape)
+library(brranching)
+
+---
+#install.packages('dplyr')
+#library(tigris) # does a weird thing when loading 
+#library('rgbif')
+#library('rgeos')
+
+```
+
+# obtain occurance data (from files and GBIF)
+```{r} 
+
+# read in files 
+AreaFile = read.csv("TreeCheck.csv")
+PerimiterFile = read.csv("2015 StreetTreeData CLEAN.csv")
+AthaFile = read.csv("FullCentralPark.csv")
+
+# Atha and perimeter data into occurance lists (from)
+atha.occ = AthaFile$DarScientificName
+street.occ = PerimiterFile$spc_latin
+
+# get genus occurance list from central park 
+genus.occ = AreaFile$Genus
+genusList = unique(genus.occ)
+
+# defining polygon for central park (wasn't working, so I dont use in the call below)
+CP=readWKT("POLYGON((-73.958124 40.800521, -73.949192 40.796849, -73.973083 40.76422, -73.981589 40.768175, -73.958124 40.800521))")
+
+# create a null/empty vector to put data
+centralPark.occ = NULL
+
+# for each genus in our list: get occurance data in cental park 
+for (i in genusList)
+{
+  # find key for genus
+  OurKey <- name_backbone(name=i, kingdom = 'plants')$usageKey
+  
+  # find data within central park range
+  genus.occ = occ_data(taxonKey = OurKey, geometry='POLYGON((-73.958124 40.800521, -73.949192 40.796849, -73.973083 40.76422, -73.981589 40.768175, -73.958124 40.800521))')
+  
+  # clean scientific name
+  genusName = genus.occ$data$genus
+  speciesName = genus.occ$data$specificEpithet
+  scientificName = paste(genusName, speciesName, sep = " ")
+  
+  # add to list of occurence data
+  centralPark.occ <-c(centralPark.occ, scientificName)
+}
+
+```
+
+# clean data
+```{r}
+
+# atha
+cleanAthat.occ = NULL 
+for (i in atha.occ)
+{
+  # find species in database
+  ourPlant <- name_backbone(name=i, kingdom = 'plants')
+  OurKey = ourPlant$usageKey
+  
+  # obtain scientific name
+  scientificName = ourPlant$species
+  
+  # add to list of occurence data
+  cleanAthat.occ <-c(cleanAthat.occ, scientificName)
+}
+atha.occ = cleanAthat.occ
+
+  # street
+cleanStreet.occ = NULL 
+for (i in street.occ)
+{
+  # find species in database
+  ourPlant <- name_backbone(name=i, kingdom = 'plants')
+  OurKey = ourPlant$usageKey
+  
+  # obtain scientific name
+  scientificName = ourPlant$species
+  
+  # add to list of occurence data
+  cleanStreet.occ <-c(cleanStreet.occ, scientificName)
+}
+street.occ = cleanStreet.occ # set cleaned list 
+street.occ
+
+# make files (to be used for phylogenetic trees) and save
+fileName = "GIBFOccurance"
+write.csv(centralPark.occ, file = fileName)
+
+fileName = "AthaOccurance"
+write.csv(atha.occ, file = fileName)
+
+fileName = "StreetOccurance"
+write.csv(street.occ, file = fileName)
+
+
+```
+
+# construct matricies 
+```{r}
+
+# compile into tables (and label them)
+centralPark.ab = count(centralPark.occ)
+atha.ab = count(atha.occ)
+street.ab = count(street.occ)
+
+GBIF.ab = data.frame("GBIF", centralPark.ab)
+atha.ab = data.frame("ATHA", atha.ab)
+
+centralPark.ab = data.frame("Central Park", centralPark.ab)
+street.ab = data.frame("Street", street.ab)
+
+names(GBIF.ab)<-c("Source", "SpeciesID", "Freq")
+names(atha.ab)<-c("Source", "SpeciesID", "Freq")
+names(centralPark.ab)<-c("Source", "SpeciesID", "Freq")
+names(street.ab)<-c("Source", "SpeciesID", "Freq")
+
+
+# combine to make one and turn into a matrix
+CPcomparison.ab = rbind(GBIF.ab, atha.ab) # combine CP lists
+CPcomparison.matrix = matrify(CPcomparison.ab) # make matrix
+
+AreaPerimeter.ab = rbind(centralPark.ab, street.ab)
+AreaPerimeter.matrix = matrify(AreaPerimeter.ab)
+
+# show output
+CPcomparison.matrix
+AreaPerimeter.matrix
+
+```
+
+
+# calculate diversity indicies (so far only done for cp data sets)
+```{r}
+# do for the two central park datasets 
+# would expect atha to be more biodiverse since it includes non-tree speices (shannon and simposon)
+# should be relatively similar when compared, but a small similarity/comparative index (bray or jaccard) could be due to the includsion of non-trees in the atha data
+CPshannon<-diversity(CPcomparison.matrix, index = "shannon")
+CPsimpson<-diversity(CPcomparison.matrix, index = "simpson")
+
+CPbray = vegdist(CPcomparison.matrix, "bray") 
+CPjaccard = vegdist(CPcomparison.matrix, "jaccard", binary=T)
+
+# do for comparing inside and outside data ("AP" stands for area/perimieter)
+APshannon <-diversity(AreaPerimeter.matrix, index = "shannon")
+APsimpson<-diversity(AreaPerimeter.matrix, index = "simpson")
+
+APbray = vegdist(AreaPerimeter.matrix, "bray") 
+APjaccard = vegdist(AreaPerimeter.matrix, "jaccard", binary=T)
+
+# print/output indicies
+CPshannon
+CPsimpson
+CPbray
+CPjaccard
+
+APshannon
+APsimpson
+APbray
+APjaccard
+
+
+```  
+  
